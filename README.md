@@ -4,10 +4,18 @@ Learning Flask (python web framework) for APIs and Web Apps.
 
 ***
 
-## Setting up Flask
+## Setting up Flask and other libraries
+
+Install Flask
 
 ```bash
 pipenv install flask
+```
+
+Install Flask-SQLAlchemy
+
+```bash
+pipenv install Flask-SQLAlchemy
 ```
 
 ## Apps
