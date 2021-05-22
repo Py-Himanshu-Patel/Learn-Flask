@@ -1,6 +1,6 @@
 # Flask : SQL Alchemy Special
 
-A Backend utilising SQL Alchemy and advanced concepts of Sqlite3 and database. [Pretty Printed](https://courses.prettyprinted.com/courses/)
+A Backend utilising SQL Alchemy and basic concepts of Sqlite3 and database. Thanks to [Pretty Printed](https://courses.prettyprinted.com/courses/)
 
 ***
 
@@ -258,4 +258,21 @@ Check database. (sqlite shell)
 ```bash
 sqlite> select * from customer;
 1|Pan|Doe|123 Fake Street|123456|john@invalid.com
+```
+
+## Queries
+
+Install faker lib. Add fake data to database first. (flask shell)
+
+```bash
+>>> from App import db, create_random_data
+>>> create_random_data()
+>>> exit()
+```
+
+Check out the database
+
+```bash
+sqlite> select count(*) from customer;
+100
 ```

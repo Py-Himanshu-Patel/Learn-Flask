@@ -18,6 +18,12 @@ Install Flask-SQLAlchemy
 pipenv install Flask-SQLAlchemy
 ```
 
+Install faker to populate database with data
+
+```bash
+pipenv install faker
+```
+
 ## Apps
 
 1. [**User Login: JWT and SQLAlchemy**](./User-Login:%20JWT%20and%20SQLAlchemy/README.md)
