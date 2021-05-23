@@ -276,3 +276,22 @@ Check out the database
 sqlite> select count(*) from customer;
 100
 ```
+
+Get all the order of a custmer. (flask shell)
+
+```bash
+>>> from App import get_order_by
+>>> get_order_by(3)
+Orders of customer 3
+8
+92
+103
+239
+369
+458
+498
+631
+691
+757
+762
+```
