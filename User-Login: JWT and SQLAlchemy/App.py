@@ -1,61 +1,76 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 import uuid
-from datetime import datetime
-from sqlalchemy.orm import backref
 from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
 
 app = Flask(__name__)
 
+app.config["SECRET_KEY"] = "top-secret-key-to-be-kept-in-env-var"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite3"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.sqlite3"
-app.config["SECRET_KEY"] = "top-secret-key-to-be-kept-secret-in-env-var"
+
 db = SQLAlchemy(app)
-# db.init_app(app)
-# db.create_all()
 
 
 class User(db.Model):
-	# id column is compulsory while making model in flask
     id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.String(50), unique=True, nullable=False)
-    name = db.Column(db.String(50), nullable=False)
-    password = db.Column(db.String(80))
+    public_id = db.Column(db.String(100), unique=True)
+    name = db.Column(db.String(100))
+    password = db.Column(db.String(100))
     admin = db.Column(db.Boolean)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    todos = db.relationship('ToDo', backref='user')
+
+    def __repr__(self):
+        return f"{self.name}"
 
 
-class ToDo(db.Model):
+class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.String(50))
-    complete = db.Column(db.Boolean)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    text = db.Column(db.String(100))
+    complete = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer)
 
+    def __repr__(self):
+        return f"{self.text} of user {self.user_id}"
 
 
 @app.route("/user", methods=["GET"])
 def get_all_users():
-	users = User.query.all()
-	output = []
-	for user in users:
-		user_data = {}
-		user_data['public_id'] = user.public_id
-		user_data['name'] = user.name
-		user_data['password'] = user.password
-		user_data['admin'] = user.admin
-		output.append(user_data)
-	return jsonify({"users": output})
+    users = User.query.all()
+
+    # we can't just return the users query object we need to
+    # serialize the User object
+    output = []
+    for user in users:
+        user_data = {}
+        user_data["name"] = user.name
+        user_data["password"] = user.password
+        user_data["public_id"] = user.public_id
+        user_data["admin"] = user.admin
+
+        output.append(user_data)
+    return jsonify({"users": output})
 
 
-@app.route("/user/<user_id>", methods=["GET"])
-def get_one_user():
-    return ""
+@app.route("/user/<public_id>", methods=["GET"])
+def get_one_user_(public_id):
+    user = User.query.filter_by(public_id=public_id).first()
+
+    if not user:
+        return jsonify({"message": "No such user"})
+
+    user_data = {}
+    user_data["name"] = user.name
+    user_data["password"] = user.password
+    user_data["public_id"] = user.public_id
+    user_data["admin"] = user.admin
+
+    return jsonify({"user": user_data})
 
 
 @app.route("/user", methods=["POST"])
 def create_user():
-    data = request.get_json()  # get json data from request
+    data = request.get_json()
     hashed_password = generate_password_hash(data["password"], method="sha256")
     new_user = User(
         public_id=str(uuid.uuid4()),
@@ -64,20 +79,59 @@ def create_user():
         admin=False,
     )
 
-    # add user to sessions
-    db.session()
+    db.session.add(new_user)
     db.session.commit()
+
     return jsonify({"message": "New User Created"})
 
 
-@app.route("/user/<user_id>", methods=["PUT"])
-def promote_user():
-    return ""
+@app.route("/user/<public_id>", methods=["PUT"])
+def promote_user(public_id):
+    user = User.query.filter_by(public_id=public_id).first()
+
+    if not user:
+        return jsonify({"message": "No such user"})
+    user.admin = True
+    db.session.commit()
+
+    return jsonify({"message": "user has beed promoted"})
 
 
-@app.route("/user/<user_id>", methods=["DELETE"])
-def delete_user():
-    return ""
+@app.route("/user/<public_id>", methods=["DELETE"])
+def delete_user(public_id):
+    user = User.query.filter_by(public_id=public_id).first()
+
+    if not user:
+        return jsonify({"message": "No such user"})
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({"message": "user has beed deleted"})
+
+
+@app.route("/login")
+def login():
+    auth = request.authorization
+
+    if not auth or not auth.username or not auth.password:
+        return make_response(
+            "Could not verify your account",
+            401,
+            {"WWW-Authenticate": 'Basic realm="Login Required"'},
+        )
+
+    user = User.query.filter_by(name=auth.username).first()
+
+    if not user:
+        return make_response(
+            "Could not verify your account",
+            401,
+            {"WWW-Authenticate": 'Basic realm="Login Required"'},
+        )
+
+    if check_password_hash(user.password, auth.password):
+        token = jwt
 
 
 if __name__ == "__main__":

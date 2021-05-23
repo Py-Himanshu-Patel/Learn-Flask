@@ -1,5 +1,11 @@
 # User Login : Using JWT and SQLAlchemy
 
+Install PyJWT
+
+```bash
+pipenv install pyjwt
+```
+
 Enter flask shell
 
 ```bash
