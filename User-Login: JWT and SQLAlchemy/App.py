@@ -1,5 +1,5 @@
 import uuid
-from functools import  wraps
+from functools import wraps
 from datetime import datetime, timedelta
 
 import jwt
@@ -41,25 +41,24 @@ def token_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         token = None
-        # send JWT in Authorization field of header withouf prefix 
+        # send JWT in Authorization field of header withouf prefix
         # of Bearer or Token
 
-
-
-        if 'Authorization' in request.headers:
-            token = request.headers['Authorization']
-            token = token.split(' ')[-1]
+        if "Authorization" in request.headers:
+            token = request.headers["Authorization"]
+            token = token.split(" ")[-1]
 
         if not token:
-            return jsonify({'message': 'Token is missing'}), 401
+            return jsonify({"message": "Token is missing"}), 401
 
         try:
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms="HS256")
-            current_user = User.query.filter_by(public_id=data['public_id']).first()
+            current_user = User.query.filter_by(public_id=data["public_id"]).first()
         except:
-            return jsonify({'message': 'Token is invalid'}), 401
-            
+            return jsonify({"message": "Token is invalid"}), 401
+
         return func(current_user, *args, **kwargs)
+
     return wrapper
 
 
@@ -67,7 +66,7 @@ def token_required(func):
 @token_required
 def get_all_users(current_user):
     if not current_user.admin:
-        return jsonify({'message': 'Not an admin'})
+        return jsonify({"message": "Not an admin"})
 
     users = User.query.all()
 
@@ -167,20 +166,84 @@ def login():
         )
 
     if check_password_hash(user.password, auth.password):
-        token = jwt.encode({
-            'public_id': user.public_id,
-            'exp': datetime.utcnow() + timedelta(minutes=30)
-        },
-        app.config['SECRET_KEY']
+        token = jwt.encode(
+            {
+                "public_id": user.public_id,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            },
+            app.config["SECRET_KEY"],
         )
 
-        return jsonify({'token': token})
+        return jsonify({"token": token})
 
     return make_response(
-            'Could not verify your account', 
-            401,
-            {'WWW-Authenticate': 'Basic realm="Login Required"'} 
-        )
+        "Could not verify your account",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'},
+    )
+
+
+@app.route("/todo", methods=["GET"])
+@token_required
+def get_all_todos(current_user):
+    todos = Todo.query.filter_by(user_id=current_user.id).all()
+    output = []
+
+    for todo in todos:
+        output.append({"id": todo.id, "task": todo.text, "completed": todo.complete})
+
+    return jsonify({"todos": output})
+
+
+@app.route("/todo/<todo_id>", methods=["GET"])
+@token_required
+def get_one_todos(current_user, todo_id):
+    todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
+
+    if not todo:
+        return jsonify({"message": "no todo found"})
+
+    data = {"id": todo.id, "task": todo.text, "completed": todo.complete}
+
+    return jsonify(data)
+
+
+@app.route("/todo", methods=["POST"])
+@token_required
+def create_todos(current_user):
+    data = request.get_json()
+    new_todo = Todo(text=data["text"], complete=False, user_id=current_user.id)
+
+    db.session.add(new_todo)
+    db.session.commit()
+
+    return jsonify({"message": "Todo created"})
+
+
+@app.route("/todo/<todo_id>", methods=["PUT"])
+@token_required
+def complete_todo(current_user, todo_id):
+    todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
+
+    if not todo:
+        return jsonify({"message": "no todo found"})
+
+    todo.complete = True
+    db.session.commit()
+    return jsonify({'message': 'Todo item completed'})
+
+
+@app.route("/todo/<todo_id>", methods=["DELETE"])
+@token_required
+def delete_todo(current_user, todo_id):
+    todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
+
+    if not todo:
+        return jsonify({"message": "no todo found"})
+
+    db.session.delete(todo)
+    db.session.commit()
+    return jsonify({'message': 'Todo item deleted'})
 
 
 if __name__ == "__main__":
