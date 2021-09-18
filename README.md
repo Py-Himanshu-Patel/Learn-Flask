@@ -37,6 +37,37 @@ python App.py   # correct - debug mode is turned ON
 flask run       # incorrect - debug mode remain OFF
 ```
 
+```bash
+# set FLASK_DEBUG to 0 or 1 in order to prevent DEBUG mode to be off or on, before running flask app
+export FLASK_DEBUG=0
+```
+
+Install python-dotenv to use env variables from env files for flask like .env or .flaskenv
+
+```bash
+# install lib
+pipenv install python-dotenv
+```
+
+```bash
+# .flaskenv
+FLASK_APP=TestApp
+FLASK_DEBUG=1
+```
+
+To set a port on which to run flask either add it as a command argument or put the in .flaskenv
+
+```bash
+flask run --port 8000
+```
+
+To make flask ignore dot-env file even if `python-dotenv` is installed.
+
+```bash
+# on CLI
+export FLASK_SKIP_DOTENV=1
+```
+
 ## Apps
 
 1. [**User Login: JWT and SQLAlchemy**](./User-Login:%20JWT%20and%20SQLAlchemy/README.md)
