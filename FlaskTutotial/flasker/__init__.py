@@ -20,11 +20,14 @@ def create_app(test_config=None):
 		pass
 
 	from . import db, auth
+	from . import blog
 	db.init_app(app)
+	app.register_blueprint(blog.blog_blueprint)
 	app.register_blueprint(auth.auth_blueprint)
+	app.add_url_rule('/', endpoint='index')
 
-	@app.route('/')
-	def hello():
-		return "Hello World!"
+	# @app.route('/')
+	# def hello():
+	# 	return "Hello World!"
 
 	return app
